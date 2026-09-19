@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char *filename = "fonte";
+char *filename = "file.slac";
 
 
 void diag_init(char *source_filename) {
