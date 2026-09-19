@@ -5,15 +5,15 @@
 #include <string.h>
 #include <ctype.h>
 
-static FILE *source_file = NULL;
-static int current_char = ' ';
-static int current_line = 1;
+FILE *source_file = NULL;
+int char_atual  = ' ';
+int linha_atual = 1;
 
 /* Avanca a leitura em um caractere e atualiza a contagem de linhas */
 static void next_char(void) {
-    current_char = fgetc(source_file);
-    if (current_char == '\n') {
-        current_line++;
+    char_atual = fgetc(source_file);
+    if (char_atual == '\n') {
+        linha_atual++;
     }
 }
 
@@ -22,7 +22,7 @@ void lex_init(const char *filename) {
     if (!source_file) {
         diag_error(0, "Nao foi possivel abrir o ficheiro de entrada.");
     }
-    current_line = 1;
+    linha_atual = 1;
     next_char();
 }
 
@@ -34,7 +34,7 @@ void lex_close(void) {
 }
 
 /* Tabela de correspondencia para palavras reservadas da linguagem SLAC2 */
-static TokenCategoria check_reserved(const char *lexeme) {
+static TokenCategoria check_reserved(char *lexeme) {
     if (strcmp(lexeme, "globvars") == 0)   return sGLOBVARS;
     if (strcmp(lexeme, "locvars") == 0)    return sLOCVARS;
     if (strcmp(lexeme, "is") == 0)         return sKIND;
@@ -70,23 +70,23 @@ Token lex_next(void) {
     Token token;
     token.lexeme[0] = '\0';
 
-    while (current_char != EOF) {
+    while (char_atual != EOF) {
         
-        if (isspace(current_char)) {
+        if (isspace(char_atual)) {
             next_char();
             continue;
         }
 
-        if (current_char == '/') {
-            int start_line = current_line;
+        if (char_atual == '/') {
+            int Linha_comeco = linha_atual;
             next_char();
 
-            if (current_char == '#') {
+            if (char_atual == '#') {
                 next_char();
-                while (current_char != EOF) {
-                    if (current_char == '#') {
+                while (char_atual != EOF) {
+                    if (char_atual == '#') {
                         next_char();
-                        if (current_char == '/') {
+                        if (char_atual == '/') {
                             next_char();
                             break;
                         }
@@ -94,37 +94,36 @@ Token lex_next(void) {
                         next_char();
                     }
                 }
-                if (current_char == EOF) {
-                    diag_error_lex(start_line, "Comentario de bloco nao terminado.");
+                if (char_atual == EOF) {
+                    diag_error_lex(Linha_comeco, "Comentario de bloco nao terminado.");
                 }
                 continue;
-            } else if (current_char == '/') {
+            } else if (char_atual == '/') {
                 token.cat = sDIV;
                 strcpy(token.lexeme, "//");
-                token.line = start_line;
+                token.line = Linha_comeco;
                 next_char();
                 return token;
             } else {
-                diag_error_lex(start_line, "Caractere inesperado apos '/'. Esperado '/' ou '#'.");
+                diag_error_lex(Linha_comeco, "Caractere inesperado apos '/'. Esperado '/' ou '#'.");
             }
         }
 
-        // Comentario de linha: # ate o fim da linha
-        if (current_char == '#') {
-            while (current_char != EOF && current_char != '\n') {
+        if (char_atual == '#') {
+            while (char_atual != EOF && char_atual != '\n') {
                 next_char();
             }
             continue;
         }
 
-        token.line = current_line;
+        token.line = linha_atual;
 
-        // Identificadores e palavras reservadas: [a-zA-Z][a-zA-Z0-9]*
-        if (isalpha(current_char)) {
+        // Identificadores e palavras reservadas: [a-zA-Z][a-zA-Z0-9_]*
+        if (isalpha(char_atual)) {
             int len = 0;
-            while (isalnum(current_char) || current_char == '_') {
+            while (isalnum(char_atual) || char_atual == '_') {
                 if (len < 255) {
-                    token.lexeme[len++] = (char)current_char;
+                    token.lexeme[len++] = (char)char_atual;
                 }
                 next_char();
             }
@@ -134,11 +133,11 @@ Token lex_next(void) {
         }
 
         // Constantes inteiras: [0-9]+
-        if (isdigit(current_char)) {
+        if (isdigit(char_atual)) {
             int len = 0;
-            while (isdigit(current_char)) {
+            while (isdigit(char_atual)) {
                 if (len < 255) {
-                    token.lexeme[len++] = (char)current_char;
+                    token.lexeme[len++] = (char)char_atual;
                 }
                 next_char();
             }
@@ -148,25 +147,25 @@ Token lex_next(void) {
         }
 
         // Cadeias de caracteres (literais de string): "..."
-        if (current_char == '"') {
+        if (char_atual == '"') {
             int len = 0;
             next_char();
-            while (current_char != EOF && current_char != '"' && current_char != '\n') {
-                if (current_char == '\\') {
+            while (char_atual != EOF && char_atual != '"' && char_atual != '\n') {
+                if (char_atual == '\\') {
                     next_char();
-                    if (current_char == '"') {
+                    if (char_atual == '"') {
                         if (len < 255) token.lexeme[len++] = '"';
                         next_char();
                         continue;
                     }
                 }
                 if (len < 255) {
-                    token.lexeme[len++] = (char)current_char;
+                    token.lexeme[len++] = (char)char_atual;
                 }
                 next_char();
             }
 
-            if (current_char != '"') {
+            if (char_atual != '"') {
                 diag_error_lex(token.line, "Cadeia de caracteres (string) nao terminada.");
             }
 
@@ -177,19 +176,19 @@ Token lex_next(void) {
         }
 
         // Constantes do tipo caractere: 'c'
-        if (current_char == '\'') {
+        if (char_atual == '\'') {
             int len = 0;
             next_char();
-            if (current_char == EOF || current_char == '\'' || current_char == '\n') {
+            if (char_atual == EOF || char_atual == '\'' || char_atual == '\n') {
                 diag_error_lex(token.line, "Constante caractere invalida.");
             }
 
             if (len < 255) {
-                token.lexeme[len++] = (char)current_char;
+                token.lexeme[len++] = (char)char_atual;
             }
             next_char();
 
-            if (current_char != '\'') {
+            if (char_atual != '\'') {
                 diag_error_lex(token.line, "Constante caractere nao terminada com aspa simples.");
             }
 
@@ -200,13 +199,13 @@ Token lex_next(void) {
         }
 
         // Operadores compostos ou simples: <, <=, <<
-        if (current_char == '<') {
+        if (char_atual == '<') {
             next_char();
-            if (current_char == '<') {
+            if (char_atual == '<') {
                 token.cat = sATRIB;
                 strcpy(token.lexeme, "<<");
                 next_char();
-            } else if (current_char == '=') {
+            } else if (char_atual == '=') {
                 token.cat = sMENORIGUAL;
                 strcpy(token.lexeme, "<=");
                 next_char();
@@ -218,9 +217,9 @@ Token lex_next(void) {
         }
 
         // Operadores compostos ou simples: >, >=
-        if (current_char == '>') {
+        if (char_atual == '>') {
             next_char();
-            if (current_char == '=') {
+            if (char_atual == '=') {
                 token.cat = sMAIORIGUAL;
                 strcpy(token.lexeme, ">=");
                 next_char();
@@ -232,9 +231,9 @@ Token lex_next(void) {
         }
 
         // Operador de implicacao: -> ou subtracao: -
-        if (current_char == '-') {
+        if (char_atual == '-') {
             next_char();
-            if (current_char == '>') {
+            if (char_atual == '>') {
                 token.cat = sIMPLIC;
                 strcpy(token.lexeme, "->");
                 next_char();
@@ -246,9 +245,9 @@ Token lex_next(void) {
         }
 
         // Operadores logicos e relacionais com til: ~= (diferente) ou ~ (negacao)
-        if (current_char == '~') {
+        if (char_atual == '~') {
             next_char();
-            if (current_char == '=') {
+            if (char_atual == '=') {
                 token.cat = sDIFERENTE;
                 strcpy(token.lexeme, "~=");
                 next_char();
@@ -260,7 +259,7 @@ Token lex_next(void) {
         }
 
         // Delimitadores e operadores de um unico caractere
-        char c = (char)current_char;
+        char c = (char)char_atual;
         next_char();
 
         token.lexeme[0] = c;
@@ -286,7 +285,7 @@ Token lex_next(void) {
     }
 
     token.cat = TOKEN_EOF;
-    token.line = current_line;
+    token.line = linha_atual;
     strcpy(token.lexeme, "EOF");
     return token;
 }

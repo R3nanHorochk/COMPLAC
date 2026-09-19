@@ -3,15 +3,11 @@
 const char *token_cat_name(TokenCategoria cat) {
     switch (cat) {
         case TOKEN_EOF:      return "EOF";
-        case TOKEN_ERROR:    return "ERROR";
-
-        /* Categorias básicas e literais */
+        case TOKEN_ERRO:     return "ERRO";
         case sIDENTIF:       return "sIDENTIF";
         case sCTEINT:        return "sCTEINT";
         case sCTECHAR:       return "sCTECHAR";
         case sSTRING:        return "sSTRING";
-
-        /* Palavras reservadas */
         case sGLOBVARS:      return "sGLOBVARS";
         case sLOCVARS:       return "sLOCVARS";
         case sKIND:          return "sKIND";
@@ -39,8 +35,6 @@ const char *token_cat_name(TokenCategoria cat) {
         case sREPEAT:        return "sREPEAT";
         case sUNTIL:         return "sUNTIL";
         case sRETURN:        return "sRETURN";
-
-        /* Operadores e delimitadores */
         case sATRIB:         return "sATRIB";
         case sIMPLIC:        return "sIMPLIC";
         case sSOMA:          return "sSOMA";
@@ -63,7 +57,6 @@ const char *token_cat_name(TokenCategoria cat) {
         case sPONTOVIRG:     return "sPONTOVIRG";
         case sVIRG:          return "sVIRG";
         case sDOISPONTOS:    return "sDOISPONTOS";
-
-        default:             return "sDESCONHECIDO";
+        default:             return "ERRO";
     }
 }
