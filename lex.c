@@ -141,7 +141,6 @@ Token lex_next(void) {
         return token;
     }
 
-    /* 1. Cadeia de caracteres literal: "..." -> armazena o lexema[cite: 1, 5, 6] */
     if (char_atual == '"') {
         next_char();
         int len = 0;
@@ -157,7 +156,7 @@ Token lex_next(void) {
             next_char();
             token.cat = sSTRING;
         } else {
-            diag_error_lex(token.line, "Cadeia de caracteres (string) nao terminada.");
+            diag_error_lex(token.line, "Cadeia de caracteres de string não terminada.");
         }
         return token;
     }
@@ -165,14 +164,14 @@ Token lex_next(void) {
     if (char_atual == '\'') {
         next_char();
         if (char_atual == EOF || char_atual == '\'' || char_atual == '\n') {
-            diag_error_lex(token.line, "Constante caractere vazia ou invalida.");
+            diag_error_lex(token.line, "Char vazia ou invalida.");
         }
         token.lexeme[0] = (char)char_atual;
         token.lexeme[1] = '\0';
         next_char();
 
         if (char_atual != '\'') {
-            diag_error_lex(token.line, "Constante caractere nao terminada com aspa simples.");
+            diag_error_lex(token.line, "Char não terminada com aspa simples.");
         }
         next_char();
         token.cat = sCTECHAR;
@@ -182,7 +181,7 @@ Token lex_next(void) {
     if (isalpha(char_atual) || char_atual == '_') {
         char buffer[256];
         int len = 0;
-        while (isalnum(char_atual) || char_atual == '_') {
+        while (isalpha(char_atual) || isdigit(char_atual) || char_atual == '_'){
             if (len < 255) {
                 buffer[len++] = (char)char_atual;
             }

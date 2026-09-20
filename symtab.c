@@ -1,110 +1,121 @@
 #include "symtab.h"
-#include "diag.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
-#define MAX_ENTRIES 2048
-#define MAX_SCOPE_DEPTH 64
+#define M 250 // Tamanho fixo da tabela
 
-static SymEntry entries[MAX_ENTRIES];
-static int total_entries = 0;
+static Simbolo tabela[M];
+static char escopo_atual[64] = "global";
+static int nivel_atual = 0;
 
-static char scope_stack[MAX_SCOPE_DEPTH][128];
-static int scope_levels[MAX_ENTRIES];
-static int current_level = -1;
-
-const char* symtab_cat_to_str(SymCategory cat) {
-    switch (cat) {
-        case SYM_VAR_GLOBAL: return "var_global";
-        case SYM_VAR_LOCAL:  return "var_local";
-        case SYM_PARAM:      return "param";
-        case SYM_PROC:       return "proc";
-        case SYM_FUNC:       return "func";
-        default:             return "desconhecido";
+static int hash_func(const char *id) {
+    int k = 0;
+    while (*id) {
+        k += (char)(*id);
+        id++;
     }
+    return k % M;
 }
 
 void symtab_init(void) {
-    total_entries = 0;
-    current_level = -1;
-    symtab_enter_scope("global");
+    for (int i = 0; i < M; i++) {
+        tabela[i].ocupado = false;
+    }
+    strcpy(escopo_atual, "global");
+    nivel_atual = 0;
 }
 
-void symtab_enter_scope(const char *scope_name) {
-    if (current_level >= MAX_SCOPE_DEPTH - 1) {
-        diag_error(0, "Limite maximo de profundidade de escopo atingido.");
-    }
-    current_level++;
-    strncpy(scope_stack[current_level], scope_name, sizeof(scope_stack[current_level]) - 1);
-    scope_stack[current_level][sizeof(scope_stack[current_level]) - 1] = '\0';
+void symtab_enter_scope(const char *name) {
+    nivel_atual++;
+    strncpy(escopo_atual, name, sizeof(escopo_atual) - 1);
+    escopo_atual[sizeof(escopo_atual) - 1] = '\0';
 }
 
 void symtab_leave_scope(void) {
-    if (current_level > 0) {
-        current_level--;
-    }
-}
+    if (nivel_atual <= 0) return;
 
-const char* symtab_get_current_scope_name(void) {
-    if (current_level >= 0) {
-        return scope_stack[current_level];
-    }
-    return "global";
-}
-
-int symtab_insert(const char *id, SymCategory cat, const char *type, int extra) {
-    /* Verifica duplicidade de declaracao no mesmo nivel de escopo */
-    for (int i = 0; i < total_entries; i++) {
-        if (scope_levels[i] == current_level && strcmp(entries[i].id, id) == 0) {
-            return 0; // Erro: identificador ja declarado neste escopo
+    for (int i = 0; i < M; i++) {
+        if (tabela[i].ocupado && tabela[i].level == nivel_atual) {
+            tabela[i].ocupado = false;
         }
     }
 
-    if (total_entries >= MAX_ENTRIES) {
-        diag_error(0, "Tabela de simbolos esgotada.");
+    nivel_atual--;
+    if (nivel_atual == 0) {
+        strcpy(escopo_atual, "global");
     }
-
-    strncpy(entries[total_entries].id, id, sizeof(entries[total_entries].id) - 1);
-    entries[total_entries].id[sizeof(entries[total_entries].id) - 1] = '\0';
-
-    strncpy(entries[total_entries].scope, scope_stack[current_level], sizeof(entries[total_entries].scope) - 1);
-    entries[total_entries].scope[sizeof(entries[total_entries].scope) - 1] = '\0';
-
-    entries[total_entries].cat = cat;
-
-    strncpy(entries[total_entries].type, type, sizeof(entries[total_entries].type) - 1);
-    entries[total_entries].type[sizeof(entries[total_entries].type) - 1] = '\0';
-
-    entries[total_entries].extra = extra;
-    scope_levels[total_entries] = current_level;
-
-    total_entries++;
-    return 1;
 }
 
-int symtab_lookup(const char *id) {
-    /* Procura do escopo mais interno ao mais externo */
-    for (int i = total_entries - 1; i >= 0; i--) {
-        if (strcmp(entries[i].id, id) == 0) {
-            return 1;
+bool symtab_insert(const char *id, SimboloCat cat, SimboloTipo tipo, int extra) {
+    int start_idx = hash_func(id);
+    int idx = start_idx;
+    int pos_livre = -1;
+
+    for (int i = 0; i < M; i++) {
+        if (tabela[idx].ocupado) {
+            if (tabela[idx].level == nivel_atual && strcmp(tabela[idx].id, id) == 0) {
+                return false;
+            }
+        } else {
+            if (pos_livre == -1) {
+                pos_livre = idx;
+                break; 
+            }
+        }
+        idx = (idx + 1) % M; 
+    }
+
+    if (pos_livre == -1) {
+        return false; 
+    }
+
+    tabela[pos_livre].ocupado = true;
+    strncpy(tabela[pos_livre].id, id, sizeof(tabela[pos_livre].id) - 1);
+    tabela[pos_livre].id[sizeof(tabela[pos_livre].id) - 1] = '\0';
+    tabela[pos_livre].cat = cat;
+    tabela[pos_livre].tipo = tipo;
+    tabela[pos_livre].extra = extra;
+    tabela[pos_livre].level = nivel_atual;
+    strcpy(tabela[pos_livre].scope, escopo_atual);
+
+    return true;
+}
+
+
+Simbolo *symtab_lookup(char *id) {
+    int start_idx = hash_func(id);
+    int idx = start_idx;
+    Simbolo *melhor_candidato = NULL;
+
+    for (int i = 0; i < M; i++) {
+        if (tabela[idx].ocupado && strcmp(tabela[idx].id, id) == 0) {
+            if (melhor_candidato == NULL || tabela[idx].level > melhor_candidato->level) {
+                melhor_candidato = &tabela[idx];
+            }
+        }
+        idx = (idx + 1) % M; 
+    }
+
+    return melhor_candidato;
+}
+
+void symtab_print(void) {
+    const char *cat_nomes[] = {"var_global", "var_local", "param", "proc", "func"};
+    const char *tipo_nomes[] = {"int", "bool", "chr", "void"};
+
+    printf("\n--- TABELA DE SIMBOLOS (Tamanho: %d) ---\n", M);
+    for (int i = 0; i < M; i++) {
+        if (tabela[i].ocupado) {
+            printf("[%03d] Escopo: %-10s | Nivel: %d | ID: %-8s | Cat: %-10s | Tipo: %-5s | Extra: %d\n",
+                   i, tabela[i].scope, tabela[i].level, tabela[i].id,
+                   cat_nomes[tabela[i].cat], tipo_nomes[tabela[i].tipo], tabela[i].extra);
         }
     }
-    return 0;
-}
-
-int symtab_get_count(void) {
-    return total_entries;
-}
-
-const SymEntry* symtab_get_entry(int index) {
-    if (index >= 0 && index < total_entries) {
-        return &entries[index];
-    }
-    return NULL;
+    printf("----------------------------------------\n");
 }
 
 void symtab_destroy(void) {
-    total_entries = 0;
-    current_level = -1;
+    for (int i = 0; i < M; i++) {
+        tabela[i].ocupado = false;
+    }
 }
