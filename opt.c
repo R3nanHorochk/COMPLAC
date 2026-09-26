@@ -1,49 +1,47 @@
 #include "opt.h"
-#include "diag.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-static CompilerOptions options;
+Options GOpts = {
+    .filename = NULL,
+    .tokens = false,
+    .symtab = false,
+    .trace = false
+};
 
 void opts_parse(int argc, char *argv[]) {
     if (argc < 2) {
-        diag_error(0, "Uso: complac <arquivo.slac> [--tokens | --symtab | --trace]");
+        fprintf(stderr, "Uso: %s <arquivo.slac> [--tokens] [--symtab] [--trace]\n", argv[0]);
+        exit(1);
     }
-
-    // Inicializa valores padrao
-    options.source_path[0] = '\0';
-    options.gen_tokens = 0;
-    options.gen_symtab = 0;
-    options.gen_trace = 0;
-
-    int source_defined = 0;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--tokens") == 0) {
-            options.gen_tokens = 1;
+            GOpts.tokens = true;
         } else if (strcmp(argv[i], "--symtab") == 0) {
-            options.gen_symtab = 1;
+            GOpts.symtab = true;
         } else if (strcmp(argv[i], "--trace") == 0) {
-            options.gen_trace = 1;
+            GOpts.trace = true;
         } else if (argv[i][0] == '-') {
-            diag_error(0, "Opcao de linha de comando desconhecida.");
+            fprintf(stderr, "Erro: Opcao desconhecida '%s'\n", argv[i]);
+            exit(1);
         } else {
-            if (!source_defined) {
-                strncpy(options.source_path, argv[i], sizeof(options.source_path) - 1);
-                options.source_path[sizeof(options.source_path) - 1] = '\0';
-                source_defined = 1;
-            } else {
-                diag_error(0, "Apenas um arquivo-fonte deve ser informado.");
+            if (GOpts.filename != NULL) {
+                fprintf(stderr, "Erro: Mais de um arquivo-fonte fornecido ('%s' e '%s')\n",
+                        GOpts.filename, argv[i]);
+                exit(1);
             }
+            GOpts.filename = argv[i];
         }
     }
 
-    if (!source_defined) {
-        diag_error(0, "Nenhum arquivo-fonte .slac foi especificado.");
+    if (GOpts.filename == NULL) {
+        fprintf(stderr, "Erro: Nenhum arquivo-fonte informado.\n");
+        exit(1);
     }
 }
 
-const CompilerOptions* opts_get(void) {
-    return &options;
+Options *opts_get(void) {
+    return &GOpts;
 }

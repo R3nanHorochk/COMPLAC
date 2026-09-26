@@ -2,34 +2,35 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char *current_filename = "fonte";
+char *filename = "file.slac";
 
-void diag_init(const char *source_filename) {
+
+void diag_init(char *source_filename) {
     if (source_filename != NULL) {
-        current_filename = source_filename;
+        strncpy(filename, source_filename, sizeof(filename) - 1);
+        filename[sizeof(filename) - 1] = '\0';
     }
 }
 
-void diag_info(const char *msg) {
-    printf("[INFO] %s\n", msg);
+void diag_info(char *msg) {
+    printf("INFO: %s\n", msg);
 }
 
-void diag_error_lex(int line, const char *msg) {
-    fprintf(stderr, "\n[ERRO LEXICO] %s:%d: %s\n", current_filename, line, msg);
-    exit(EXIT_FAILURE);
+void diag_error_lex(int linha, char *msg) {
+    printf("\nERRO LEXICO: %s:%d: %s\n", filename, linha, msg);
+    exit(1);
 }
 
-void diag_error_syntax(int line, const char *expected, const char *found) {
-    fprintf(stderr, "\n[ERRO SINTATICO] %s:%d: Esperado '%s', mas encontrado '%s'\n",
-            current_filename, line, expected, found);
-    exit(EXIT_FAILURE);
+void diag_error_sintat(int linha, char *expected, char *found) {
+    printf("\nERRO SINTATICO: %s:%d: Esperado '%s', mas encontrado '%s'\n", filename, linha, expected, found);
+    exit(1);
 }
 
-void diag_error(int line, const char *msg) {
-    if (line > 0) {
-        fprintf(stderr, "\n[ERRO] %s:%d: %s\n", current_filename, line, msg);
+void diag_error(int linha, char *msg) {
+    if (linha > 0) {
+        printf("\nERRO: %s:%d: %s\n", filename, linha, msg);
     } else {
-        fprintf(stderr, "\n[ERRO] %s: %s\n", current_filename, msg);
+        printf("\nERRO: %s: %s\n", filename, msg);
     }
-    exit(EXIT_FAILURE);
+    exit(1);
 }
