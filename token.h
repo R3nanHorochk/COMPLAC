@@ -66,5 +66,6 @@ typedef struct {
 } Token;
 
 const char *tokenCatNome(TokenCategoria cat);
+const char *token_cat_name(TokenCategoria cat);
 
-#endif 
+#endif

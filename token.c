@@ -64,3 +64,7 @@ const char *token_cat_name(TokenCategoria cat) {
         default:             return "sDESCONHECIDO";
     }
 }
+
+const char *tokenCatNome(TokenCategoria cat) {
+    return token_cat_name(cat);
+}

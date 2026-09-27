@@ -83,3 +83,9 @@ void log_close(void) {
         file_trc = NULL;
     }
 }
+
+void log_flush(void) {
+    if (file_tk) fflush(file_tk);
+    if (file_ts) fflush(file_ts);
+    if (file_trc) fflush(file_trc);
+}

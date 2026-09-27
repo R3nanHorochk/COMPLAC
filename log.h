@@ -14,6 +14,7 @@ void log_symtab_entry(const char *scope, const char *id, const char *cat, const 
 
 /* Registra uma mensagem de rastreamento no arquivo .trc */
 void log_trace(const char *msg);
+void log_flush(void);
 
 /* Fecha os arquivos de log que foram abertos */
 void log_close(void);

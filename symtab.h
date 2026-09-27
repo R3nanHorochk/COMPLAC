@@ -28,6 +28,8 @@ typedef struct {
     int level;              // Nível de escopo (0 = global)
 } Simbolo;
 
+typedef Simbolo SymEntry;
+
 void symtab_init(void);
 void symtab_destroy(void);
 
@@ -36,6 +38,11 @@ void symtab_leave_scope(void);
 
 bool symtab_insert(const char *id, SimboloCat cat, SimboloTipo tipo, int extra);
 Simbolo *symtab_lookup(const char *id);
+int symtab_get_count(void);
+const SymEntry *symtab_get_entry(int index);
+const char *symtab_cat_to_str(SimboloCat cat);
+const char *symtab_type_to_str(SimboloTipo type);
+void symtab_update_signature(const char *id, SimboloTipo type, int extra);
 
 void symtab_print(void);
 

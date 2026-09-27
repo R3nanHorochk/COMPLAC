@@ -42,6 +42,6 @@ void opts_parse(int argc, char *argv[]) {
     }
 }
 
-Options *opts_get(void) {
+const Options *opts_get(void) {
     return &GOpts;
 }

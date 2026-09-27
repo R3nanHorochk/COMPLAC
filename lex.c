@@ -1,5 +1,6 @@
 #include "lex.h"
 #include "diag.h"
+#include "log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -79,7 +80,7 @@ static TokenCategoria CheckReservada(const char *text) {
     return sIDENTIF;
 }
 
-Token lex_next(void) {
+static Token lex_next_raw(void) {
     Token token;
     token.cat = TOKEN_ERRO;
     token.lexeme[0] = '\0';
@@ -122,7 +123,7 @@ Token lex_next(void) {
             } else if (char_atual == '/') {
                 token.line = inicio_linha;
                 token.cat = sDIV;
-                token.lexeme[0] = '\0';
+                strcpy(token.lexeme, "//");
                 next_char();
                 return token;
             } else {
@@ -190,14 +191,9 @@ Token lex_next(void) {
         buffer[len] = '\0';
 
         TokenCategoria cat_encontrada = CheckReservada(buffer);
-        if (cat_encontrada == sIDENTIF) {
-            token.cat = sIDENTIF;
-            strncpy(token.lexeme, buffer, 255);
-            token.lexeme[255] = '\0';
-        } else {
-            token.cat = cat_encontrada;
-            token.lexeme[0] = '\0';
-        }
+        token.cat = cat_encontrada;
+        strncpy(token.lexeme, buffer, 255);
+        token.lexeme[255] = '\0';
         return token;
     }
 
@@ -222,38 +218,48 @@ Token lex_next(void) {
             if (char_atual == '<') { next_char(); token.cat = sATRIB; }
             else if (char_atual == '=') { next_char(); token.cat = sMENORIGUAL; }
             else { token.cat = sMENOR; }
+            strcpy(token.lexeme, token.cat == sATRIB ? "<<" : (token.cat == sMENORIGUAL ? "<=" : "<"));
             return token;
 
         case '>':
             if (char_atual == '=') { next_char(); token.cat = sMAIORIGUAL; }
             else { token.cat = sMAIOR; }
+            strcpy(token.lexeme, token.cat == sMAIORIGUAL ? ">=" : ">");
             return token;
 
         case '-':
             if (char_atual == '>') { next_char(); token.cat = sIMPLIC; }
             else { token.cat = sSUBRAT; }
+            strcpy(token.lexeme, token.cat == sIMPLIC ? "->" : "-");
             return token;
 
         case '~':
             if (char_atual == '=') { next_char(); token.cat = sDIFERENTE; }
             else { token.cat = sNEG; }
+            strcpy(token.lexeme, token.cat == sDIFERENTE ? "~=" : "~");
             return token;
 
-        case '=': token.cat = sIGUAL;      return token;
-        case '+': token.cat = sSOMA;       return token;
-        case '*': token.cat = sMULT;       return token;
-        case '&': token.cat = sAND;        return token;
-        case '|': token.cat = sOR;         return token;
-        case '(': token.cat = sABREPAR;    return token;
-        case ')': token.cat = sFECHAPAR;   return token;
-        case '[': token.cat = sABRECOL;    return token;
-        case ']': token.cat = sFECHACOL;   return token;
-        case ';': token.cat = sPONTOVIRG;  return token;
-        case ',': token.cat = sVIRG;       return token;
-        case ':': token.cat = sDOISPONTOS; return token;
+        case '=': token.cat = sIGUAL;      strcpy(token.lexeme, "="); return token;
+        case '+': token.cat = sSOMA;       strcpy(token.lexeme, "+"); return token;
+        case '*': token.cat = sMULT;       strcpy(token.lexeme, "*"); return token;
+        case '&': token.cat = sAND;        strcpy(token.lexeme, "&"); return token;
+        case '|': token.cat = sOR;         strcpy(token.lexeme, "|"); return token;
+        case '(': token.cat = sABREPAR;    strcpy(token.lexeme, "("); return token;
+        case ')': token.cat = sFECHAPAR;   strcpy(token.lexeme, ")"); return token;
+        case '[': token.cat = sABRECOL;    strcpy(token.lexeme, "["); return token;
+        case ']': token.cat = sFECHACOL;   strcpy(token.lexeme, "]"); return token;
+        case ';': token.cat = sPONTOVIRG;  strcpy(token.lexeme, ";"); return token;
+        case ',': token.cat = sVIRG;       strcpy(token.lexeme, ","); return token;
+        case ':': token.cat = sDOISPONTOS; strcpy(token.lexeme, ":"); return token;
 
         default:
             diag_error_lex(token.line, "Caractere desconhecido ou invalido.");
             return token;
     }
+}
+
+Token lex_next(void) {
+    Token t = lex_next_raw();
+    log_token(&t);
+    return t;
 }

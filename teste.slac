@@ -1,4 +1,3 @@
-cat << 'EOF' > teste.slac
 globvars
   total is int;
 
@@ -16,4 +15,3 @@ start
   total << SOMA(x, y);
   echo("Resultado: ", total);
 end
-EOF
